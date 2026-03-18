@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Gallery - Admin</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <nav>
+        <a href="/gallery" class="logo">ID Gallery</a>
+        <div class="nav-links">
+            <a href="/gallery">Gallery</a>
+            <a href="/submissions">Submit Photo</a>
+            <a href="/admin" class="active">Admin Demo</a>
+        </div>
+    </nav>
+
+    <main>
+        <h1 class="page-title">Photo Administration</h1>
+
+        <div id="loader" class="loader"></div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h2>No submissions available</h2>
+            <p>Wait for photographers to submit their work.</p>
+        </div>
+
+        <div class="admin-grid" id="adminGrid">
+            <!-- Cards will be dynamically inserted here -->
+        </div>
+    </main>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchPhotos);
+
+        async function fetchPhotos() {
+            try {
+                const response = await fetch('/api/admin/photos');
+                const data = await response.json();
+
+                document.getElementById('loader').style.display = 'none';
+
+                if (data.photos.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                    return;
+                }
+
+                renderPhotos(data.photos);
+            } catch (error) {
+                console.error("Error fetching photos", error);
+                document.getElementById('loader').style.display = 'none';
+                showNotification("Failed to load photos", "error");
+            }
+        }
+
+        function renderPhotos(photos) {
+            const grid = document.getElementById('adminGrid');
+            grid.innerHTML = '';
+
+            photos.forEach(photo => {
+                const card = document.createElement('div');
+                card.className = 'admin-card';
+                card.innerHTML = `
+                    <img src="${photo.imageUrl}" alt="${photo.title}" loading="lazy">
+                    <div class="admin-card-content">
+                        <div class="admin-card-header">
+                            <h3 class="admin-card-title">${photo.title || 'Untitled'}</h3>
+                            <span class="status-badge status-${photo.status}">${photo.status}</span>
+                        </div>
+                        <p class="admin-card-author">by ${photo.photographerName}</p>
+                        <p class="admin-card-desc">${photo.description || 'No description provided.'}</p>
+                        
+                        <div class="admin-actions">
+                            <button class="btn btn-small btn-approve" onclick="updateStatus('${photo.id}', 'APPROVED')" ${photo.status === 'APPROVED' ? 'disabled' : ''}>
+                                Approve
+                            </button>
+                            <button class="btn btn-small btn-reject" onclick="updateStatus('${photo.id}', 'REJECTED')" ${photo.status === 'REJECTED' ? 'disabled' : ''}>
+                                Reject
+                            </button>
+                            ${['APPROVED', 'DISPLAYED'].includes(photo.status) ? `
+                            <button class="btn btn-small btn-display" onclick="setDisplay('${photo.id}')">
+                                ${photo.status === 'DISPLAYED' ? 'Remove from Display' : 'Set as Display'}
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function updateStatus(photoId, status) {
+            try {
+                const formData = new FormData();
+                formData.append('status', status);
+
+                const response = await fetch(`/api/admin/photos/${photoId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showNotification(`Photo ${status.toLowerCase()} successfully`, 'success');
+                    fetchPhotos(); // Re-fetch to update UI
+                } else {
+                    const result = await response.json();
+                    showNotification(result.detail || "Update failed", "error");
+                }
+            } catch (error) {
+                console.error("Status update error", error);
+                showNotification("Network error occurred", "error");
+            }
+        }
+
+        async function setDisplay(photoId) {
+            try {
+                const response = await fetch(`/api/admin/display/${photoId}`, {
+                    method: 'PUT'
+                });
+
+                if (response.ok) {
+                    showNotification(`Photo is now being displayed!`, 'success');
+                    fetchPhotos(); // Re-fetch to update UI
+                } else {
+                    const result = await response.json();
+                    showNotification(result.detail || "Display update failed", "error");
+                }
+            } catch (error) {
+                console.error("Display update error", error);
+                showNotification("Network error occurred", "error");
+            }
+        }
+
+        function showNotification(message, type) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.className = `notification show ${type}`;
+
+            setTimeout(() => {
+                notif.className = 'notification';
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

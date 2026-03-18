@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Gallery</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .carousel-track.shifting {
+            transition: none;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="/gallery" class="logo">ID Gallery</a>
+        <div class="nav-links">
+            <a href="/gallery" class="active">Gallery</a>
+            <a href="/submissions">Submit Photo</a>
+            <a href="/admin">Admin Demo</a>
+        </div>
+    </nav>
+
+    <main style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+        <h1 class="page-title" id="galleryTitle">Featured Exhibitions</h1>
+
+        <div id="loader" class="loader"></div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h2>No photos available</h2>
+            <p>Check back later or submit your own photo!</p>
+            <a href="/submissions" class="btn" style="margin-top: 1rem;">Submit a Photo</a>
+        </div>
+
+        <div id="carousel" class="carousel-container" style="display: none;">
+            <button class="fullscreen-btn" id="fsBtn" aria-label="Toggle Fullscreen">&#x26F6;</button>
+            <button class="carousel-btn prev" id="prevBtn" aria-label="Previous image">&#10094;</button>
+            <button class="carousel-btn next" id="nextBtn" aria-label="Next image">&#10095;</button>
+
+            <div class="carousel-track crossfade" id="track">
+                <!-- Slides will be dynamically injected here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', initGallery);
+
+        let currentSlide = 0;
+        let photos = [];
+
+        async function initGallery() {
+            try {
+                const response = await fetch('/api/photos');
+                const data = await response.json();
+
+                document.getElementById('loader').style.display = 'none';
+
+                if (!data.photos || data.photos.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                    return;
+                }
+
+                photos = data.photos;
+                setupCarousel();
+
+                document.getElementById('carousel').style.display = 'block';
+            } catch (error) {
+                console.error("Failed to load gallery", error);
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('emptyState').innerHTML = '<h2>Failed to load gallery</h2><p>Please try again later.</p>';
+            }
+        }
+
+        function setupCarousel() {
+            const track = document.getElementById('track');
+            track.innerHTML = '';
+
+            photos.forEach((photo, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'carousel-slide crossfade-slide';
+                if (index === 0) slide.classList.add('active'); // first slide active initially
+                slide.setAttribute('data-index', index);
+
+                slide.innerHTML = `
+                    <div style="position: relative; width: 100%; height: 100%;">
+                        <img src="${photo.imageUrl}" alt="${photo.title || 'Gallery image'}" loading="lazy">
+                        <div class="carousel-caption">
+                            <h2>${photo.title || 'Untitled'}</h2>
+                            <p>Photo by ${photo.photographerName}</p>
+                            ${photo.description ? `<p style="margin-top: 0.5rem; opacity: 0.8; font-size: 0.85rem;">${photo.description}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+                track.appendChild(slide);
+            });
+
+            document.getElementById('prevBtn').addEventListener('click', () => moveToSlide(currentSlide - 1));
+            document.getElementById('nextBtn').addEventListener('click', () => moveToSlide(currentSlide + 1));
+
+            // Fullscreen toggle
+            document.getElementById('fsBtn').addEventListener('click', () => {
+                document.body.classList.toggle('gallery-fullscreen');
+            });
+
+            // Start auto rotation every 10s
+            setInterval(() => {
+                moveToSlide(currentSlide + 1);
+            }, 10000);
+
+            // Fullscreen Idle Timeouts
+            let idleTimeout;
+            function resetIdleTimer() {
+                if (document.body.classList.contains('gallery-fullscreen')) {
+                    document.body.classList.remove('idle');
+                    clearTimeout(idleTimeout);
+                    idleTimeout = setTimeout(() => {
+                        document.body.classList.add('idle');
+                    }, 3000); // 3 seconds of inactivity fades UI
+                }
+            }
+
+            // Listen for any interactions to reset the timer
+            window.addEventListener('mousemove', resetIdleTimer);
+            window.addEventListener('mousedown', resetIdleTimer);
+            window.addEventListener('keydown', resetIdleTimer);
+            window.addEventListener('touchstart', resetIdleTimer);
+        }
+
+        function moveToSlide(index) {
+            let nextIndex;
+            // Loop array behavior
+            if (index < 0) {
+                nextIndex = photos.length - 1;
+            } else if (index >= photos.length) {
+                nextIndex = 0;
+            } else {
+                nextIndex = index;
+            }
+
+            if (nextIndex === currentSlide) return; // do nothing if same
+
+            const slides = document.querySelectorAll('.crossfade-slide');
+            if (slides.length > 0) {
+                slides[currentSlide].classList.remove('active');
+                slides[nextIndex].classList.add('active');
+            }
+
+            currentSlide = nextIndex;
+        }
+    </script>
+</body>
+
+</html>

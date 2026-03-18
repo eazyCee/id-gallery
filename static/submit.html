@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Gallery - Submissions</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <nav>
+        <a href="/gallery" class="logo">ID Gallery</a>
+        <div class="nav-links">
+            <a href="/gallery">Gallery</a>
+            <a href="/submissions" class="active">Submit Photo</a>
+            <a href="/admin">Admin Demo</a>
+        </div>
+    </nav>
+
+    <main>
+        <h1 class="page-title">Submit Your Photo</h1>
+        
+        <div class="glass-panel" style="max-width: 600px; margin: 0 auto;">
+            <form id="submissionForm">
+                <div class="form-group">
+                    <label for="title">Photo Title</label>
+                    <input type="text" id="title" name="title" required placeholder="A beautiful sunset...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="photographerName">Photographer Name</label>
+                    <input type="text" id="photographerName" name="photographerName" required placeholder="John Doe">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" required placeholder="Tell us the story behind this shot..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="file">Upload Photo</label>
+                    <input type="file" id="file" name="file" accept="image/*" required>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn" style="width: 100%; margin-top: 1rem;">
+                    Upload to Gallery
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        document.getElementById('submissionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const submitBtn = document.getElementById('submitBtn');
+            const fileInput = document.getElementById('file');
+            
+            if (!fileInput.files[0]) {
+                showNotification('Please select a photo to upload', 'error');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Uploading...';
+            
+            try {
+                const response = await fetch('/api/submissions', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showNotification('Photo submitted successfully! Pending admin approval.', 'success');
+                    form.reset();
+                } else {
+                    const error = await response.json();
+                    showNotification(error.detail || 'Upload failed', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Network error occurred', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Upload to Gallery';
+            }
+        });
+
+        function showNotification(message, type) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.className = `notification show ${type}`;
+            
+            setTimeout(() => {
+                notif.className = 'notification';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

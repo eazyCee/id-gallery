@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Local Uploads
+local_uploads/
+
+# OS
+.DS_Store
