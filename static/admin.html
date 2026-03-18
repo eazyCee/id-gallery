@@ -36,8 +36,8 @@
             <p>Wait for photographers to submit their work.</p>
         </div>
 
-        <div class="admin-grid" id="adminGrid">
-            <!-- Cards will be dynamically inserted here -->
+        <div id="adminContainer">
+            <!-- Grouped sections will be dynamically inserted here -->
         </div>
     </main>
 
@@ -85,8 +85,8 @@
         });
 
         function renderPhotos() {
-            const grid = document.getElementById('adminGrid');
-            grid.innerHTML = '';
+            const container = document.getElementById('adminContainer');
+            container.innerHTML = '';
 
             // 1. Filter by status
             const filteredPhotos = currentStatus === 'ALL'
@@ -119,12 +119,18 @@
                 return new Date(b) - new Date(a);
             });
 
-            // 4. Render
+            // 4. Render sections
             sortedKeys.forEach(key => {
+                const section = document.createElement('section');
+                section.className = 'admin-group-section';
+
                 const header = document.createElement('div');
                 header.className = 'admin-group-header';
-                header.innerHTML = `${key} <span>${groups[key].length} photos</span>`;
-                grid.appendChild(header);
+                header.innerHTML = `<h2>${key}</h2> <span>${groups[key].length} photos</span>`;
+                section.appendChild(header);
+
+                const grid = document.createElement('div');
+                grid.className = 'admin-photo-grid';
 
                 groups[key].forEach(photo => {
                     const card = document.createElement('div');
@@ -156,6 +162,9 @@
                     `;
                     grid.appendChild(card);
                 });
+
+                section.appendChild(grid);
+                container.appendChild(section);
             });
         }
 

@@ -635,3 +635,20 @@ body.gallery-fullscreen .carousel-caption p {
   gap: 2rem;
   align-items: start;
 }
+/* Refined Admin Grouping */
+.admin-group-section {
+  margin-bottom: 4rem;
+}
+
+.admin-group-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.5px;
+}
+
+.admin-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  align-items: start;
+}
