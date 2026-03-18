@@ -499,8 +499,9 @@ body.gallery-fullscreen main {
   align-items: center;
 }
 
-body.gallery-fullscreen .page-title {
-  display: none;
+body.gallery-fullscreen .page-title,
+body.gallery-fullscreen .page-subtitle {
+  display: none !important;
 }
 
 body.gallery-fullscreen .carousel-container {
@@ -534,9 +535,12 @@ body.gallery-fullscreen .carousel-slide {
 body.gallery-fullscreen .carousel-caption {
   background: linear-gradient(transparent, rgba(255, 255, 255, 0.95));
   color: #1e293b;
-  padding-bottom: 2rem;
-  padding-left: 4vw;
-  padding-right: 4vw;
+  padding: 1.5rem 4vw;
+  bottom: 4vh;
+  /* Lift the caption to stay within the white frame and avoid clipping */
+  left: 4vw;
+  right: 4vw;
+  border-radius: 0 0 4px 4px;
 }
 
 body.gallery-fullscreen .carousel-caption h2 {

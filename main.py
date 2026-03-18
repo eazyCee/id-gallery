@@ -44,16 +44,12 @@ async def root():
     return Response(status_code=302, headers={"Location": "/gallery"})
 
 @app.get("/gallery")
-async def gallery_page(user: str = Depends(get_current_user)):
-    if not user:
-        return RedirectResponse(url="/login")
+async def gallery_page():
     with open("static/index.html", "r") as f:
         return HTMLResponse(content=f.read())
 
 @app.get("/submissions")
-async def submissions_page(user: str = Depends(get_current_user)):
-    if not user:
-        return RedirectResponse(url="/login")
+async def submissions_page():
     with open("static/submit.html", "r") as f:
         return HTMLResponse(content=f.read())
 
@@ -76,8 +72,7 @@ async def submit_photo(
     title: str = Form(...),
     photographerName: str = Form(...),
     description: str = Form(...),
-    file: UploadFile = File(...),
-    user: str = Depends(login_required)
+    file: UploadFile = File(...)
 ):
     # 1. Upload File
     file_id = str(uuid.uuid4())
@@ -126,7 +121,7 @@ async def submit_photo(
 
 
 @app.get("/api/photos")
-async def get_gallery_photos(user: str = Depends(login_required)):
+async def get_gallery_photos():
     """Returns only DISPLAYED or APPROVED photos for the public gallery (fallback to APPROVED if none DISPLAYED)"""
     photos = []
     
