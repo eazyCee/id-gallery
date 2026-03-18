@@ -22,21 +22,21 @@ app.mount("/uploads", StaticFiles(directory="local_uploads"), name="local_upload
 # Fallback in-memory database if Firebase is not configured
 IN_MEMORY_DB = []
 
-# Hardcoded Credentials
-ADMIN_USERNAME = "cultureclubadmin"
-ADMIN_PASSWORD = "cultureclubidcgkpcp1745"
+# Credentials from Environment Variables
+ADMIN_USERNAME = os.getenv("GALLERY_USERNAME", "cultureclubadmin")
+ADMIN_PASSWORD = os.getenv("GALLERY_PASSWORD", "cultureclubidcgkpcp1745")
 AUTH_COOKIE_NAME = "admin_session"
-AUTH_TOKEN = "secret_admin_token_123" # In a real app, this would be a secure session ID
+AUTH_TOKEN = "secret_admin_token_123"
 
-async def get_current_admin(admin_session: str = Cookie(None)):
+async def get_current_user(admin_session: str = Cookie(None)):
     if admin_session != AUTH_TOKEN:
         return None
     return ADMIN_USERNAME
 
-def admin_required(admin: str = Depends(get_current_admin)):
-    if not admin:
+def login_required(user: str = Depends(get_current_user)):
+    if not user:
         raise HTTPException(status_code=401, detail="Not authorized")
-    return admin
+    return user
 
 @app.get("/")
 async def root():
@@ -44,12 +44,16 @@ async def root():
     return Response(status_code=302, headers={"Location": "/gallery"})
 
 @app.get("/gallery")
-async def gallery_page():
+async def gallery_page(user: str = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
     with open("static/index.html", "r") as f:
         return HTMLResponse(content=f.read())
 
 @app.get("/submissions")
-async def submissions_page():
+async def submissions_page(user: str = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
     with open("static/submit.html", "r") as f:
         return HTMLResponse(content=f.read())
 
@@ -59,8 +63,8 @@ async def login_page():
         return HTMLResponse(content=f.read())
 
 @app.get("/admin")
-async def admin_page(admin: str = Depends(get_current_admin)):
-    if not admin:
+async def admin_page(user: str = Depends(get_current_user)):
+    if not user:
         return RedirectResponse(url="/login")
     with open("static/admin.html", "r") as f:
         return HTMLResponse(content=f.read())
@@ -72,7 +76,8 @@ async def submit_photo(
     title: str = Form(...),
     photographerName: str = Form(...),
     description: str = Form(...),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user: str = Depends(login_required)
 ):
     # 1. Upload File
     file_id = str(uuid.uuid4())
@@ -121,7 +126,7 @@ async def submit_photo(
 
 
 @app.get("/api/photos")
-async def get_gallery_photos():
+async def get_gallery_photos(user: str = Depends(login_required)):
     """Returns only DISPLAYED or APPROVED photos for the public gallery (fallback to APPROVED if none DISPLAYED)"""
     photos = []
     
@@ -170,7 +175,7 @@ async def admin_logout(response: Response):
     return {"message": "Logged out"}
 
 @app.get("/api/admin/photos")
-async def get_admin_photos(admin: str = Depends(admin_required)):
+async def get_admin_photos(user: str = Depends(login_required)):
     """Returns ALL photos for the admin panel"""
     photos = []
     
@@ -193,7 +198,7 @@ async def get_admin_photos(admin: str = Depends(admin_required)):
 
 
 @app.put("/api/admin/photos/{photo_id}")
-async def update_photo_status(photo_id: str, status: str = Form(...), admin: str = Depends(admin_required)):
+async def update_photo_status(photo_id: str, status: str = Form(...), user: str = Depends(login_required)):
     """Approve or Reject a photo"""
     if status not in ["APPROVED", "REJECTED", "PENDING", "DISPLAYED"]:
         raise HTTPException(status_code=400, detail="Invalid status")
@@ -219,7 +224,7 @@ async def update_photo_status(photo_id: str, status: str = Form(...), admin: str
     return {"message": f"Photo status updated to {status}"}
 
 @app.put("/api/admin/display/{photo_id}")
-async def set_current_display(photo_id: str, admin: str = Depends(admin_required)):
+async def set_current_display(photo_id: str, user: str = Depends(login_required)):
     """Toggles a photo's DISPLAYED status on or off."""
     if is_firebase_enabled():
         try:
