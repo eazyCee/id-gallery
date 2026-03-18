@@ -652,3 +652,21 @@ body.gallery-fullscreen .carousel-caption p {
   gap: 2rem;
   align-items: start;
 }
+
+.admin-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.admin-card-author {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-card-date {
+  color: var(--text-secondary);
+  font-style: italic;
+}

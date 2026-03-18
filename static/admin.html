@@ -142,7 +142,10 @@
                                 <h3 class="admin-card-title">${photo.title || 'Untitled'}</h3>
                                 <span class="status-badge status-${photo.status}">${photo.status}</span>
                             </div>
-                            <p class="admin-card-author">by ${photo.photographerName}</p>
+                            <div class="admin-card-meta">
+                                <span class="admin-card-author">by ${photo.photographerName}</span>
+                                <span class="admin-card-date">Uploaded: ${photo.createdAt ? new Date(photo.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}</span>
+                            </div>
                             <p class="admin-card-desc">${photo.description || 'No description provided.'}</p>
                             
                             <div class="admin-actions">

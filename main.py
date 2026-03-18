@@ -173,16 +173,31 @@ async def admin_logout(response: Response):
 
 @app.get("/api/admin/photos")
 async def get_admin_photos(user: str = Depends(login_required)):
-    """Returns ALL photos for the admin panel"""
+    """Returns ALL photos for the admin panel with enriched metadata"""
     photos = []
     
     if is_firebase_enabled():
         db = get_db()
+        bucket = get_bucket()
         try:
             docs = db.collection("photos").stream()
             for doc in docs:
                 data = doc.to_dict()
                 data["id"] = doc.id
+                
+                # Backfill createdAt if missing and it's a GCS image
+                if not data.get("createdAt") and "storage.googleapis.com" in data.get("imageUrl", ""):
+                    try:
+                        # Extract blob name: e.g. .../submissions/uuid.ext
+                        blob_path = data["imageUrl"].split(".com/")[1].split("/", 1)[1]
+                        blob = bucket.get_blob(blob_path)
+                        if blob and blob.time_created:
+                            data["createdAt"] = blob.time_created.isoformat()
+                            # Optional: Update Firestore to avoid repeating this fetch
+                            db.collection("photos").document(doc.id).update({"createdAt": data["createdAt"]})
+                    except Exception as e:
+                        print(f"Failed to fetch metadata for {data.get('id')}: {e}")
+                
                 photos.append(data)
         except Exception as e:
             print(f"Error fetching from Firestore (Admin): {e}")
