@@ -1,6 +1,6 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Response, Request, Depends, Cookie
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 import os
 from typing import List
 import uuid
@@ -9,7 +9,7 @@ import uuid
 # For local dev without credentials, we will use an in-memory fallback.
 from database import get_db, get_bucket, is_firebase_enabled
 
-app = FastAPI(title="ID Gallery API")
+app = FastAPI(title="ID Googlers Gallery API")
 
 # Ensure static directory and local uploads directory exist
 os.makedirs("static", exist_ok=True)
@@ -21,6 +21,22 @@ app.mount("/uploads", StaticFiles(directory="local_uploads"), name="local_upload
 
 # Fallback in-memory database if Firebase is not configured
 IN_MEMORY_DB = []
+
+# Hardcoded Credentials
+ADMIN_USERNAME = "cultureclubadmin"
+ADMIN_PASSWORD = "cultureclubidcgkpcp1745"
+AUTH_COOKIE_NAME = "admin_session"
+AUTH_TOKEN = "secret_admin_token_123" # In a real app, this would be a secure session ID
+
+async def get_current_admin(admin_session: str = Cookie(None)):
+    if admin_session != AUTH_TOKEN:
+        return None
+    return ADMIN_USERNAME
+
+def admin_required(admin: str = Depends(get_current_admin)):
+    if not admin:
+        raise HTTPException(status_code=401, detail="Not authorized")
+    return admin
 
 @app.get("/")
 async def root():
@@ -37,8 +53,15 @@ async def submissions_page():
     with open("static/submit.html", "r") as f:
         return HTMLResponse(content=f.read())
 
+@app.get("/login")
+async def login_page():
+    with open("static/login.html", "r") as f:
+        return HTMLResponse(content=f.read())
+
 @app.get("/admin")
-async def admin_page():
+async def admin_page(admin: str = Depends(get_current_admin)):
+    if not admin:
+        return RedirectResponse(url="/login")
     with open("static/admin.html", "r") as f:
         return HTMLResponse(content=f.read())
 
@@ -134,8 +157,20 @@ async def get_gallery_photos():
     return {"photos": photos}
 
 
+@app.post("/api/admin/login")
+async def admin_login(response: Response, username: str = Form(...), password: str = Form(...)):
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        response.set_cookie(key=AUTH_COOKIE_NAME, value=AUTH_TOKEN, httponly=True)
+        return {"message": "Login successful"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.post("/api/admin/logout")
+async def admin_logout(response: Response):
+    response.delete_cookie(AUTH_COOKIE_NAME)
+    return {"message": "Logged out"}
+
 @app.get("/api/admin/photos")
-async def get_admin_photos():
+async def get_admin_photos(admin: str = Depends(admin_required)):
     """Returns ALL photos for the admin panel"""
     photos = []
     
@@ -158,7 +193,7 @@ async def get_admin_photos():
 
 
 @app.put("/api/admin/photos/{photo_id}")
-async def update_photo_status(photo_id: str, status: str = Form(...)):
+async def update_photo_status(photo_id: str, status: str = Form(...), admin: str = Depends(admin_required)):
     """Approve or Reject a photo"""
     if status not in ["APPROVED", "REJECTED", "PENDING", "DISPLAYED"]:
         raise HTTPException(status_code=400, detail="Invalid status")
@@ -184,7 +219,7 @@ async def update_photo_status(photo_id: str, status: str = Form(...)):
     return {"message": f"Photo status updated to {status}"}
 
 @app.put("/api/admin/display/{photo_id}")
-async def set_current_display(photo_id: str):
+async def set_current_display(photo_id: str, admin: str = Depends(admin_required)):
     """Toggles a photo's DISPLAYED status on or off."""
     if is_firebase_enabled():
         try:

@@ -4,17 +4,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID Gallery - Admin</title>
+    <title>Admin - ID Googlers Gallery</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 
 <body>
     <nav>
-        <a href="/gallery" class="logo">ID Gallery</a>
+        <a href="/gallery" class="logo">ID Googlers Gallery</a>
         <div class="nav-links">
             <a href="/gallery">Gallery</a>
             <a href="/submissions">Submit Photo</a>
-            <a href="/admin" class="active">Admin Demo</a>
+            <a href="/admin" class="active">Admin Panel</a>
+            <a href="#" onclick="logout()" style="margin-left: 1rem; color: var(--error);">Logout</a>
         </div>
     </nav>
 
@@ -40,6 +41,10 @@
         async function fetchPhotos() {
             try {
                 const response = await fetch('/api/admin/photos');
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
                 const data = await response.json();
 
                 document.getElementById('loader').style.display = 'none';
@@ -132,6 +137,16 @@
             } catch (error) {
                 console.error("Display update error", error);
                 showNotification("Network error occurred", "error");
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/admin/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error("Logout error", error);
+                window.location.href = '/login';
             }
         }
 
