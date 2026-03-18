@@ -198,7 +198,11 @@
                 });
 
                 if (response.ok) {
-                    showNotification(`Photo is now being displayed!`, 'success');
+                    const result = await response.json();
+                    const msg = result.new_status === 'DISPLAYED'
+                        ? 'Photo is now being displayed!'
+                        : 'Photo has been removed from display.';
+                    showNotification(msg, 'success');
                     fetchPhotos(); // Re-fetch to update UI
                 } else {
                     const result = await response.json();

@@ -236,7 +236,7 @@ async def set_current_display(photo_id: str, user: str = Depends(login_required)
             new_status = "APPROVED" if data.get("status") == "DISPLAYED" else "DISPLAYED"
             doc_ref.update({"status": new_status})
             
-            return {"message": f"Photo display status updated."}
+            return {"message": "Success", "new_status": new_status}
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to update display status: {e}")
     else:
@@ -251,4 +251,4 @@ async def set_current_display(photo_id: str, user: str = Depends(login_required)
         if not found:
             raise HTTPException(status_code=404, detail="Photo not found")
             
-    return {"message": "Current display updated."}
+    return {"message": "Success", "new_status": new_status}
