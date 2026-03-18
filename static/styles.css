@@ -575,3 +575,62 @@ body.gallery-fullscreen .carousel-caption p {
   opacity: 1;
   z-index: 2;
 }
+/* Admin Grouping & Status Tabs */
+.status-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  overflow-x: auto;
+}
+
+.status-tab {
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.status-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.status-tab.active {
+  background: var(--accent-solid);
+  color: white;
+  box-shadow: var(--accent-glow);
+}
+
+.admin-group-header {
+  grid-column: 1 / -1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent-solid);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-primary);
+}
+
+.admin-group-header span {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  align-items: start;
+}

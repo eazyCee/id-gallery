@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 import os
 from typing import List
 import uuid
+from datetime import datetime, timezone
 
 # In a real application, database imported from database.py would connect to Firestore.
 # For local dev without credentials, we will use an in-memory fallback.
@@ -105,6 +106,7 @@ async def submit_photo(
         "description": description,
         "imageUrl": image_url,
         "status": "PENDING", # All new photos start as pending
+        "createdAt": datetime.now(timezone.utc).isoformat(),
     }
     
     if is_firebase_enabled():

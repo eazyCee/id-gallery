@@ -22,6 +22,14 @@
     <main>
         <h1 class="page-title">Photo Administration</h1>
 
+        <div class="status-tabs" id="statusTabs">
+            <div class="status-tab active" data-status="ALL">All Submissions</div>
+            <div class="status-tab" data-status="DISPLAYED">Now Displayed</div>
+            <div class="status-tab" data-status="APPROVED">Approved</div>
+            <div class="status-tab" data-status="PENDING">Pending</div>
+            <div class="status-tab" data-status="REJECTED">Rejected</div>
+        </div>
+
         <div id="loader" class="loader"></div>
         <div id="emptyState" class="empty-state" style="display: none;">
             <h2>No submissions available</h2>
@@ -46,6 +54,8 @@
                     return;
                 }
                 const data = await response.json();
+                allPhotos = data.photos; // Store globally
+                currentStatus = 'ALL';
 
                 document.getElementById('loader').style.display = 'none';
 
@@ -54,7 +64,7 @@
                     return;
                 }
 
-                renderPhotos(data.photos);
+                renderPhotos();
             } catch (error) {
                 console.error("Error fetching photos", error);
                 document.getElementById('loader').style.display = 'none';
@@ -62,39 +72,90 @@
             }
         }
 
-        function renderPhotos(photos) {
+        let allPhotos = [];
+        let currentStatus = 'ALL';
+
+        document.getElementById('statusTabs').addEventListener('click', (e) => {
+            if (e.target.classList.contains('status-tab')) {
+                document.querySelectorAll('.status-tab').forEach(tab => tab.classList.remove('active'));
+                e.target.classList.add('active');
+                currentStatus = e.target.dataset.status;
+                renderPhotos();
+            }
+        });
+
+        function renderPhotos() {
             const grid = document.getElementById('adminGrid');
             grid.innerHTML = '';
 
-            photos.forEach(photo => {
-                const card = document.createElement('div');
-                card.className = 'admin-card';
-                card.innerHTML = `
-                    <img src="${photo.imageUrl}" alt="${photo.title}" loading="lazy">
-                    <div class="admin-card-content">
-                        <div class="admin-card-header">
-                            <h3 class="admin-card-title">${photo.title || 'Untitled'}</h3>
-                            <span class="status-badge status-${photo.status}">${photo.status}</span>
+            // 1. Filter by status
+            const filteredPhotos = currentStatus === 'ALL'
+                ? allPhotos
+                : allPhotos.filter(p => p.status === currentStatus);
+
+            if (filteredPhotos.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            } else {
+                document.getElementById('emptyState').style.display = 'none';
+            }
+
+            // 2. Group by Month/Year
+            const groups = {};
+            filteredPhotos.forEach(photo => {
+                let key = 'Prior Submissions';
+                if (photo.createdAt) {
+                    const date = new Date(photo.createdAt);
+                    key = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                }
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(photo);
+            });
+
+            // 3. Sort groups (newest first)
+            const sortedKeys = Object.keys(groups).sort((a, b) => {
+                if (a === 'Prior Submissions') return 1;
+                if (b === 'Prior Submissions') return -1;
+                return new Date(b) - new Date(a);
+            });
+
+            // 4. Render
+            sortedKeys.forEach(key => {
+                const header = document.createElement('div');
+                header.className = 'admin-group-header';
+                header.innerHTML = `${key} <span>${groups[key].length} photos</span>`;
+                grid.appendChild(header);
+
+                groups[key].forEach(photo => {
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    card.innerHTML = `
+                        <img src="${photo.imageUrl}" alt="${photo.title}" loading="lazy">
+                        <div class="admin-card-content">
+                            <div class="admin-card-header">
+                                <h3 class="admin-card-title">${photo.title || 'Untitled'}</h3>
+                                <span class="status-badge status-${photo.status}">${photo.status}</span>
+                            </div>
+                            <p class="admin-card-author">by ${photo.photographerName}</p>
+                            <p class="admin-card-desc">${photo.description || 'No description provided.'}</p>
+                            
+                            <div class="admin-actions">
+                                <button class="btn btn-small btn-approve" onclick="updateStatus('${photo.id}', 'APPROVED')" ${photo.status === 'APPROVED' ? 'disabled' : ''}>
+                                    Approve
+                                </button>
+                                <button class="btn btn-small btn-reject" onclick="updateStatus('${photo.id}', 'REJECTED')" ${photo.status === 'REJECTED' ? 'disabled' : ''}>
+                                    Reject
+                                </button>
+                                ${['APPROVED', 'DISPLAYED'].includes(photo.status) ? `
+                                <button class="btn btn-small btn-display" onclick="setDisplay('${photo.id}')">
+                                    ${photo.status === 'DISPLAYED' ? 'Remove from Display' : 'Set as Display'}
+                                </button>
+                                ` : ''}
+                            </div>
                         </div>
-                        <p class="admin-card-author">by ${photo.photographerName}</p>
-                        <p class="admin-card-desc">${photo.description || 'No description provided.'}</p>
-                        
-                        <div class="admin-actions">
-                            <button class="btn btn-small btn-approve" onclick="updateStatus('${photo.id}', 'APPROVED')" ${photo.status === 'APPROVED' ? 'disabled' : ''}>
-                                Approve
-                            </button>
-                            <button class="btn btn-small btn-reject" onclick="updateStatus('${photo.id}', 'REJECTED')" ${photo.status === 'REJECTED' ? 'disabled' : ''}>
-                                Reject
-                            </button>
-                            ${['APPROVED', 'DISPLAYED'].includes(photo.status) ? `
-                            <button class="btn btn-small btn-display" onclick="setDisplay('${photo.id}')">
-                                ${photo.status === 'DISPLAYED' ? 'Remove from Display' : 'Set as Display'}
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(card);
+                    `;
+                    grid.appendChild(card);
+                });
             });
         }
 
