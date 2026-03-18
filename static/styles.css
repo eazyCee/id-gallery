@@ -11,7 +11,7 @@
   --success-color: #10b981;
   --danger-color: #ef4444;
   --border-radius: 12px;
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family: 'Google Sans', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 * {
@@ -575,6 +575,7 @@ body.gallery-fullscreen .carousel-caption p {
   opacity: 1;
   z-index: 2;
 }
+
 /* Admin Grouping & Status Tabs */
 .status-tabs {
   display: flex;
