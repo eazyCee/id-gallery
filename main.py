@@ -129,32 +129,19 @@ async def get_gallery_photos():
     
     if is_firebase_enabled():
         db = get_db()
-        # Try fetching displayed first
         try:
-            displayed_docs = list(db.collection("photos").where("status", "==", "DISPLAYED").stream())
-            if displayed_docs:
-                for doc in displayed_docs:
-                    data = doc.to_dict()
-                    data["id"] = doc.id
-                    photos.append(data)
-            else:
-                # Fallback to general approved photos if none are explicitly displayed
-                docs = db.collection("photos").where("status", "==", "APPROVED").stream()
-                for doc in docs:
-                    data = doc.to_dict()
-                    data["id"] = doc.id
-                    photos.append(data)
+            docs = db.collection("photos").where("status", "==", "DISPLAYED").stream()
+            for doc in docs:
+                data = doc.to_dict()
+                data["id"] = doc.id
+                photos.append(data)
         except Exception as e:
             print(f"Error fetching from Firestore (Public Gallery): {e}")
             # Return empty list instead of crashing
             return {"photos": []}
     else:
         # Local Fallback
-        displayed = [p for p in IN_MEMORY_DB if p.get("status") == "DISPLAYED"]
-        if displayed:
-            photos = displayed
-        else:
-            photos = [p for p in IN_MEMORY_DB if p.get("status") == "APPROVED"]
+        photos = [p for p in IN_MEMORY_DB if p.get("status") == "DISPLAYED"]
         
     return {"photos": photos}
 
